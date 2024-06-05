@@ -1,0 +1,58 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rshiny-demo-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rshiny-demo-app
+  namespace: rshiny-demo-app
+  labels:
+    app: rshiny-demo-app
+  annotations:
+    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.secure: "false"
+    traefik.ingress.kubernetes.io/service.sticky.cookie.name: RShinyDemoAppStickyCookie
+spec:
+  type: ClusterIP
+  ports:
+  - name: shiny
+    port: 3838
+  selector:
+    app: rshiny-demo-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rshiny-demo-app
+  namespace: rshiny-demo-app
+  labels:
+    app: rshiny-demo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rshiny-demo-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: rshiny-demo-app
+    spec:
+      containers:
+      - name: rshiny-demo-app
+        image: rocker/shiny:4.3.1
+        env:
+          - name: SHINY_LOG_LEVEL
+            value: DEBUG
+          - name: SHINY_LOG_STDERR
+            value: "1"
+        ports:
+        - containerPort: 3838
+          name: shiny
